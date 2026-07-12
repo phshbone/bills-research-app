@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1b2027">
-<title>bill's big belly — research collector v0.1.2 ready to send</title>
+<title>bill's big belly — research collector v0.1.3 agreement email fix</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baumans&display=swap" rel="stylesheet">
@@ -87,6 +87,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <input id="testerName" class="input" placeholder="first name or nickname">
     <label><input id="agreeBox" type="checkbox"> <span>I understand this is a research beta and not medical guidance.</span></label>
     <button id="acceptAgreement" class="btn primary" style="width:100%">continue</button>
+    <div id="agreementStatus"></div>
   </div>
 </div>
 
@@ -187,7 +188,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 <script src="https://unpkg.com/@zxing/browser@latest"></script>
 <script>
-const APP_VERSION="0.1.2";
+const APP_VERSION="0.1.3";
 const RULES_URL="./bbb-rules.json";
 const USDA_WORKER="https://bad-belly-usda.phshbone.workers.dev";
 const STORAGE_KEY="bbb_collector_session_v010";
@@ -343,6 +344,39 @@ function compressImage(file,max=1200,quality=.8){
     reader.onerror=reject;reader.readAsDataURL(file);
   })
 }
+
+async function submitBetaAgreement(testerName){
+  const endpoint=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;
+  const token=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
+  const payload={
+    token,
+    submissionType:"betaAgreement",
+    betaRecord:{
+      kind:"betaAgreement",
+      testerName,
+      timestamp:new Date().toISOString(),
+      localTime:new Date().toLocaleString(),
+      appVersion:APP_VERSION,
+      agreementVersion:"BBB Research Collector v1",
+      acknowledged:true,
+      device:navigator.platform||"",
+      userAgent:navigator.userAgent||""
+    }
+  };
+
+  const response=await fetch(endpoint,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify(payload)
+  });
+
+  const data=await response.json();
+  if(!response.ok||!data.success){
+    throw new Error((data&&data.error)||"Agreement submission failed");
+  }
+  return data;
+}
+
 async function submitSession(){
   const items=getSession(), endpoint=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT, token=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
   if(!items.length){$("sendNotice").innerHTML='<div class="notice">Nothing is saved yet.</div>';return}
@@ -378,7 +412,31 @@ $("sendSessionBtn").onclick=submitSession;
 $("exportBtn").onclick=exportJson;
 $("clearSessionBtn").onclick=()=>{if(confirm("Clear all saved scans?")){localStorage.removeItem(STORAGE_KEY);renderQueue()}};
 $("saveSetupBtn").onclick=()=>{localStorage.setItem(ENDPOINT_KEY,$("endpointInput").value.trim());localStorage.setItem(TOKEN_KEY,$("tokenInput").value.trim());$("sendNotice").innerHTML='<div class="notice">Collector setup saved on this device.</div>'};
-$("acceptAgreement").onclick=()=>{if(!$("agreeBox").checked||!$("testerName").value.trim())return;localStorage.setItem(AGREEMENT_KEY,"1");localStorage.setItem(TESTER_KEY,$("testerName").value.trim());hide("agreement")};
+$("acceptAgreement").onclick=async()=>{
+  const testerName=$("testerName").value.trim();
+  if(!$("agreeBox").checked||!testerName){
+    $("agreementStatus").innerHTML='<div class="notice">Enter a name or nickname and check the agreement box.</div>';
+    return;
+  }
+
+  const button=$("acceptAgreement");
+  button.disabled=true;
+  button.textContent="sending agreement…";
+  $("agreementStatus").innerHTML="";
+
+  try{
+    await submitBetaAgreement(testerName);
+    localStorage.setItem(AGREEMENT_KEY,"1");
+    localStorage.setItem(TESTER_KEY,testerName);
+    hide("agreement");
+    $("sendNotice").innerHTML='<div class="notice">Beta agreement sent successfully.</div>';
+  }catch(e){
+    $("agreementStatus").innerHTML='<div class="notice">The agreement could not be sent. Check the connection and try again.</div>';
+  }finally{
+    button.disabled=false;
+    button.textContent="continue";
+  }
+};
 
 (async function init(){
   if(!localStorage.getItem(ENDPOINT_KEY))localStorage.setItem(ENDPOINT_KEY,DEFAULT_ENDPOINT);
