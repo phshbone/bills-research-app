@@ -46,11 +46,11 @@ textarea.input{min-height:90px;resize:vertical}
 .product-name{font-size:1.2rem;font-weight:900;margin-top:8px}
 .product-brand{color:var(--muted);font-size:.86rem;margin-top:3px}
 .light-wrap{display:grid;place-items:center;margin:18px 0 10px}
-.light{width:92px;height:92px;border-radius:50%;border:7px solid rgba(255,255,255,.08);box-shadow:0 14px 30px rgba(0,0,0,.35),inset 0 0 0 4px rgba(255,255,255,.08)}
-.light.green{background:var(--green)}.light.yellow{background:var(--yellow)}.light.red{background:var(--red)}.light.gray{background:#666}
+.light{width:70px;height:70px;border-radius:50%;border:5px solid rgba(255,255,255,.08);display:grid;place-items:center;font-family:var(--display);font-size:.72rem;font-weight:700;color:#fff;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.08)}
+.light.green{background:#7fa98a}.light.yellow{background:#b98a43}.light.red{background:#8b5862}.light.gray{background:#666}
 .status-light-label{margin-top:8px;color:var(--muted);font-size:.78rem}
 .meta{display:grid;gap:5px;margin-top:12px;text-align:left;border-top:1px solid rgba(184,154,192,.14);padding-top:10px}
-.meta div{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.meta div{font-size:.72rem;color:var(--muted);overflow-wrap:anywhere}
 .queue{display:grid;gap:8px;margin-top:10px}
 .queue-item{border:1px solid rgba(184,154,192,.16);border-radius:14px;padding:10px;background:rgba(17,21,26,.24)}
 .queue-item strong{display:block}.queue-item span{display:block;color:var(--muted);font-size:.76rem;margin-top:3px}
@@ -123,7 +123,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <div class="product-brand" id="productBrand"></div>
     <div class="light-wrap">
       <div id="ratingLight" class="light gray"></div>
-      <div class="status-light-label">research classification</div>
+      <div class="status-light-label">collection status</div>
     </div>
     <div class="meta" id="resultMeta"></div>
     <div class="grid">
@@ -277,6 +277,7 @@ function showResult(product){
   $("productName").textContent=current.productName;
   $("productBrand").textContent=current.brand;
   $("ratingLight").className=`light ${current.analysis.light}`;
+  $("ratingLight").textContent=current.analysis.light==="green"?"SAFE":(current.analysis.light==="yellow"?"MAYBE":"AVOID");
   $("resultMeta").innerHTML=`<div>source: ${esc(current.source)}</div><div>barcode: ${esc(current.barcode)}</div><div>rules: ${esc(current.analysis.rulesVersion)}</div>`;
   clearStatus();hide("fallbackCard");show("resultCard");
 }
