@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1b2027">
-<title>bill's big belly — research collector v0.1.5</title>
+<title>bill's big belly — research collector v0.1.2 ready to send</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baumans&display=swap" rel="stylesheet">
@@ -26,7 +26,7 @@ button{cursor:pointer;touch-action:manipulation}
 .bill-face{width:62px;height:62px;border-radius:21px;display:grid;place-items:center;background:linear-gradient(145deg,var(--purple),#513d59);font-family:var(--display);font-size:1.25rem;box-shadow:0 12px 28px rgba(0,0,0,.38)}
 h1,h2,h3,.eyebrow,.btn,.pill,.status-light-label{font-family:var(--display);text-transform:lowercase;letter-spacing:.02em}
 .eyebrow{margin:0 0 3px;color:#b89ac0;font-size:.76rem}
-h1{margin:0;font-size:1.9rem;line-height:1;color:#b89ac0;text-shadow:0 2px 0 #3a2742,0 8px 18px rgba(0,0,0,.35)}
+h1{margin:0;font-size:1.9rem;line-height:1;color:var(--purple2);text-shadow:0 2px 0 #3a2742,0 8px 18px rgba(0,0,0,.45)}
 .card{border:1px solid rgba(184,154,192,.24);border-radius:24px;padding:15px;background:linear-gradient(145deg,rgba(48,57,70,.97),rgba(27,32,39,.96));box-shadow:0 18px 44px rgba(0,0,0,.38);margin-bottom:12px}
 .card h2,.card h3{margin:0 0 8px}
 .card p{margin:0;color:var(--muted);line-height:1.4;font-size:.9rem}
@@ -46,11 +46,11 @@ textarea.input{min-height:90px;resize:vertical}
 .product-name{font-size:1.2rem;font-weight:900;margin-top:8px}
 .product-brand{color:var(--muted);font-size:.86rem;margin-top:3px}
 .light-wrap{display:grid;place-items:center;margin:18px 0 10px}
-.light{width:70px;height:70px;border-radius:50%;border:5px solid rgba(255,255,255,.08);display:grid;place-items:center;font-family:var(--display);font-size:.72rem;font-weight:700;color:#fff;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,.35),inset 0 0 0 3px rgba(255,255,255,.08)}
-.light.green{background:#7fa98a}.light.yellow{background:#b98a43}.light.red{background:#8b5862}.light.gray{background:#666}
+.light{width:92px;height:92px;border-radius:50%;border:7px solid rgba(255,255,255,.08);box-shadow:0 14px 30px rgba(0,0,0,.35),inset 0 0 0 4px rgba(255,255,255,.08)}
+.light.green{background:var(--green)}.light.yellow{background:var(--yellow)}.light.red{background:var(--red)}.light.gray{background:#666}
 .status-light-label{margin-top:8px;color:var(--muted);font-size:.78rem}
 .meta{display:grid;gap:5px;margin-top:12px;text-align:left;border-top:1px solid rgba(184,154,192,.14);padding-top:10px}
-.meta div{font-size:.72rem;color:var(--muted);overflow-wrap:anywhere}
+.meta div{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
 .queue{display:grid;gap:8px;margin-top:10px}
 .queue-item{border:1px solid rgba(184,154,192,.16);border-radius:14px;padding:10px;background:rgba(17,21,26,.24)}
 .queue-item strong{display:block}.queue-item span{display:block;color:var(--muted);font-size:.76rem;margin-top:3px}
@@ -86,17 +86,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     </ul>
     <input id="testerName" class="input" placeholder="first name or nickname">
     <label><input id="agreeBox" type="checkbox"> <span>I understand this is a research beta and not medical guidance.</span></label>
-
-    <details id="agreementSetup" style="margin:10px 0 12px">
-      <summary style="font-family:var(--display);cursor:pointer;color:#b89ac0">owner setup</summary>
-      <p class="small" style="margin-top:10px">Required only once before distributing the app.</p>
-      <input id="agreementEndpointInput" class="input" placeholder="Apps Script web app URL ending in /exec" style="margin-top:8px">
-      <input id="agreementTokenInput" class="input" placeholder="submission token" style="margin-top:8px">
-      <button id="saveAgreementSetupBtn" class="btn" type="button" style="width:100%;margin-top:8px">save owner setup</button>
-    </details>
-
     <button id="acceptAgreement" class="btn primary" style="width:100%">continue</button>
-    <div id="agreementMessage"></div>
   </div>
 </div>
 
@@ -133,7 +123,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <div class="product-brand" id="productBrand"></div>
     <div class="light-wrap">
       <div id="ratingLight" class="light gray"></div>
-      <div class="status-light-label">collection status</div>
+      <div class="status-light-label">research classification</div>
     </div>
     <div class="meta" id="resultMeta"></div>
     <div class="grid">
@@ -197,8 +187,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 <script src="https://unpkg.com/@zxing/browser@latest"></script>
 <script>
-const APP_VERSION="0.1.5";
-const DEFAULT_APPS_SCRIPT_URL="PASTE_YOUR_WEB_APP_URL_HERE";
+const APP_VERSION="0.1.2";
 const RULES_URL="./bbb-rules.json";
 const USDA_WORKER="https://bad-belly-usda.phshbone.workers.dev";
 const STORAGE_KEY="bbb_collector_session_v010";
@@ -206,6 +195,8 @@ const AGREEMENT_KEY="bbb_collector_agreed_v010";
 const TESTER_KEY="bbb_collector_tester";
 const ENDPOINT_KEY="bbb_collector_endpoint";
 const TOKEN_KEY="bbb_collector_token";
+const DEFAULT_ENDPOINT="https://script.google.com/macros/s/AKfycbzK9yOGCF0ljhEbE91an7PwktICAOUY_F2Q2wbZHCuE7vSu6rq5ts7T8XwnlKi_fgyclA/exec";
+const DEFAULT_TOKEN="ezone-2026-secret-change-this";
 
 let BBB_RULES={foodCategories:[],ingredientFamilies:[],dominantFoodRules:[],preparationRules:[],falsePositiveRules:[],nutritionRules:[]};
 let current=null, barcodeReader=null, barcodeControls=null, barcodeLock=false;
@@ -288,7 +279,6 @@ function showResult(product){
   $("productName").textContent=current.productName;
   $("productBrand").textContent=current.brand;
   $("ratingLight").className=`light ${current.analysis.light}`;
-  $("ratingLight").textContent=current.analysis.light==="green"?"SAFE":(current.analysis.light==="yellow"?"MAYBE":"AVOID");
   $("resultMeta").innerHTML=`<div>source: ${esc(current.source)}</div><div>barcode: ${esc(current.barcode)}</div><div>rules: ${esc(current.analysis.rulesVersion)}</div>`;
   clearStatus();hide("fallbackCard");show("resultCard");
 }
@@ -354,7 +344,7 @@ function compressImage(file,max=1200,quality=.8){
   })
 }
 async function submitSession(){
-  const items=getSession(), endpoint=localStorage.getItem(ENDPOINT_KEY)||"", token=localStorage.getItem(TOKEN_KEY)||"";
+  const items=getSession(), endpoint=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT, token=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
   if(!items.length){$("sendNotice").innerHTML='<div class="notice">Nothing is saved yet.</div>';return}
   if(!endpoint){$("sendNotice").innerHTML='<div class="notice">Add the Apps Script URL in Collector Setup, or export the JSON file.</div>';return}
   $("sendNotice").innerHTML='<div class="notice">Sending session…</div>';
@@ -388,90 +378,13 @@ $("sendSessionBtn").onclick=submitSession;
 $("exportBtn").onclick=exportJson;
 $("clearSessionBtn").onclick=()=>{if(confirm("Clear all saved scans?")){localStorage.removeItem(STORAGE_KEY);renderQueue()}};
 $("saveSetupBtn").onclick=()=>{localStorage.setItem(ENDPOINT_KEY,$("endpointInput").value.trim());localStorage.setItem(TOKEN_KEY,$("tokenInput").value.trim());$("sendNotice").innerHTML='<div class="notice">Collector setup saved on this device.</div>'};
-$("saveAgreementSetupBtn").onclick=()=>{
-  const endpoint=$("agreementEndpointInput").value.trim();
-  const token=$("agreementTokenInput").value.trim()||"ezone-2026-secret-change-this";
-
-  if(!endpoint || !endpoint.endsWith("/exec")){
-    $("agreementMessage").innerHTML='<div class="notice">Paste the full Apps Script Web App URL ending in /exec.</div>';
-    return;
-  }
-
-  localStorage.setItem(ENDPOINT_KEY,endpoint);
-  localStorage.setItem(TOKEN_KEY,token);
-
-  $("endpointInput").value=endpoint;
-  $("tokenInput").value=token;
-  $("agreementMessage").innerHTML='<div class="notice">Owner setup saved. You can now submit the agreement.</div>';
-};
-
-$("acceptAgreement").onclick=async()=>{
-  const testerName=$("testerName").value.trim();
-  if(!$("agreeBox").checked||!testerName){
-    $("agreementMessage").innerHTML='<div class="notice">Enter a name or nickname and check the agreement box.</div>';
-    return;
-  }
-
-  const endpoint=localStorage.getItem(ENDPOINT_KEY)||(
-    DEFAULT_APPS_SCRIPT_URL!=="PASTE_YOUR_WEB_APP_URL_HERE"
-      ? DEFAULT_APPS_SCRIPT_URL
-      : ""
-  );
-  const token=localStorage.getItem(TOKEN_KEY)||"ezone-2026-secret-change-this";
-
-  if(!endpoint){
-    $("agreementMessage").innerHTML='<div class="notice">The Apps Script web-app URL has not been added yet. Add it in Collector Setup, then reopen the app and accept the agreement.</div>';
-    return;
-  }
-
-  const btn=$("acceptAgreement");
-  btn.disabled=true;
-  btn.textContent="sending…";
-  $("agreementMessage").innerHTML='<div class="notice">Sending agreement to Bill…</div>';
-
-  try{
-    const payload={
-      token,
-      submissionType:"bbbResearchAgreement",
-      testerName,
-      timestamp:new Date().toISOString(),
-      localTime:new Date().toLocaleString(),
-      appVersion:APP_VERSION,
-      agreementVersion:"BBB Research Agreement v1",
-      acknowledged:true,
-      device:navigator.platform||"",
-      userAgent:navigator.userAgent
-    };
-
-    const response=await fetch(endpoint,{
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify(payload)
-    });
-
-    const result=await response.json();
-    if(!response.ok||!result.success)throw new Error(result.error||"Agreement submission failed");
-
-    localStorage.setItem(AGREEMENT_KEY,"1");
-    localStorage.setItem(TESTER_KEY,testerName);
-    localStorage.setItem(ENDPOINT_KEY,endpoint);
-    localStorage.setItem(TOKEN_KEY,token);
-    hide("agreement");
-  }catch(error){
-    $("agreementMessage").innerHTML='<div class="notice">Agreement could not be sent. Nothing was accepted on this device. Check the web-app URL and try again.</div>';
-  }finally{
-    btn.disabled=false;
-    btn.textContent="continue";
-  }
-};
+$("acceptAgreement").onclick=()=>{if(!$("agreeBox").checked||!$("testerName").value.trim())return;localStorage.setItem(AGREEMENT_KEY,"1");localStorage.setItem(TESTER_KEY,$("testerName").value.trim());hide("agreement")};
 
 (async function init(){
-  const savedEndpoint=localStorage.getItem(ENDPOINT_KEY)||"";
-  const defaultEndpoint=DEFAULT_APPS_SCRIPT_URL!=="PASTE_YOUR_WEB_APP_URL_HERE"?DEFAULT_APPS_SCRIPT_URL:"";
-  $("endpointInput").value=savedEndpoint||defaultEndpoint;
-  $("tokenInput").value=localStorage.getItem(TOKEN_KEY)||"ezone-2026-secret-change-this";
-  $("agreementEndpointInput").value=savedEndpoint||defaultEndpoint;
-  $("agreementTokenInput").value=localStorage.getItem(TOKEN_KEY)||"ezone-2026-secret-change-this";
+  if(!localStorage.getItem(ENDPOINT_KEY))localStorage.setItem(ENDPOINT_KEY,DEFAULT_ENDPOINT);
+  if(!localStorage.getItem(TOKEN_KEY))localStorage.setItem(TOKEN_KEY,DEFAULT_TOKEN);
+  $("endpointInput").value=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;
+  $("tokenInput").value=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
   if(localStorage.getItem(AGREEMENT_KEY)!=="1")show("agreement");
   await loadRules();renderQueue();
 })();
