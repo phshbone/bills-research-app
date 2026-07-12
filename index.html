@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1b2027">
-<title>bill's big belly — research collector v0.1.3 agreement email fix</title>
+<title>bill's big belly — research collector v0.1.4 store test build</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baumans&display=swap" rel="stylesheet">
@@ -91,19 +91,43 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   </div>
 </div>
 
+<div id="instructions" class="agreement hidden">
+  <div class="agreement-card">
+    <p class="eyebrow">30-second instructions</p>
+    <h2>help build bill's food library</h2>
+
+    <div style="display:grid;gap:12px;margin-top:14px">
+      <div><strong>1. Scan Barcode</strong><br><span style="color:var(--muted)">Tap the large Scan Barcode button.</span></div>
+      <div><strong>2. Save Scan</strong><br><span style="color:var(--muted)">When the product appears, tap Save Scan.</span></div>
+      <div><strong>3. Product Not Found</strong><br><span style="color:var(--muted)">Take a front-package photo and ingredient-label photo if possible, then save the fallback record.</span></div>
+      <div><strong>4. Scan Another</strong><br><span style="color:var(--muted)">Repeat for as many foods as you like.</span></div>
+      <div><strong>5. Send to Bill</strong><br><span style="color:var(--muted)">When finished, send the whole session.</span></div>
+      <div><strong>6. Clear Session</strong><br><span style="color:var(--muted)">After a successful send, clear everything to start fresh.</span></div>
+    </div>
+
+    <p class="notice" style="margin-top:14px">
+      You do not need to know anything about Crohn's disease. Just scan packaged foods.
+    </p>
+
+    <button id="closeInstructions" class="btn primary" style="width:100%;margin-top:12px">start scanning</button>
+  </div>
+</div>
+
 <main class="app">
   <header class="top">
     <div class="bill-face">big<br>bill</div>
-    <div>
+    <div style="flex:1">
       <p class="eyebrow">research collector</p>
       <h1>bill's big belly</h1>
     </div>
+    <button id="instructionsBtn" class="btn" style="min-height:40px;padding:8px 10px">instructions</button>
   </header>
 
   <section class="card hero" id="startCard">
     <h2>scan a packaged food</h2>
     <p>Barcode first. Photos are only needed when the product cannot be found.</p>
-    <button id="scanBarcodeBtn" class="scan-btn" aria-label="Scan barcode">▦</button>
+    <button id="scanBarcodeBtn" class="btn primary" style="width:100%;min-height:64px;font-size:1.08rem;margin-top:14px">scan barcode</button>
+    <div style="font-size:2.2rem;margin:12px 0 2px" aria-hidden="true">▦</div>
     <div class="grid one">
       <button id="manualEntryBtn" class="btn">type barcode instead</button>
     </div>
@@ -134,20 +158,32 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <button id="scanAnotherBtn" class="btn" style="width:100%;margin-top:9px">scan another</button>
   </section>
 
+  <section class="card hidden" id="savedCard">
+    <div style="text-align:center">
+      <p class="eyebrow">scan saved</p>
+      <h3 id="savedProductName">Product saved</h3>
+      <p id="savedCountText">Current session updated.</p>
+    </div>
+    <div class="grid">
+      <button id="savedScanAnotherBtn" class="btn primary">scan another</button>
+      <button id="savedSendBtn" class="btn">send to Bill</button>
+    </div>
+  </section>
+
   <section class="card hidden" id="fallbackCard">
     <h3>product not found</h3>
-    <p>No typing is required. Save the failed barcode, or add quick package photos so Bill can identify it later.</p>
+    <p>No typing is required. Take one or two quick photos inside the app, save the fallback record, and continue scanning.</p>
     <div class="grid">
-      <button id="saveNoBarcodeBtn" class="btn warn">save no result</button>
+      <button id="saveNoBarcodeBtn" class="btn warn">save without photos</button>
       <button id="retryBtn" class="btn">try barcode again</button>
     </div>
     <div class="grid">
-      <label class="btn" style="display:grid;place-items:center">front photo<input id="frontPhotoInput" type="file" accept="image/*" capture="environment" hidden></label>
-      <label class="btn" style="display:grid;place-items:center">ingredient photo<input id="ingredientPhotoInput" type="file" accept="image/*" capture="environment" hidden></label>
+      <label class="btn" style="display:grid;place-items:center">take front photo<input id="frontPhotoInput" type="file" accept="image/*" capture="environment" hidden></label>
+      <label class="btn" style="display:grid;place-items:center">take ingredient photo<input id="ingredientPhotoInput" type="file" accept="image/*" capture="environment" hidden></label>
     </div>
     <img id="frontPreview" class="photo-preview hidden" alt="Front package preview">
     <img id="ingredientPreview" class="photo-preview hidden" alt="Ingredient label preview">
-    <button id="savePhotoFallbackBtn" class="btn primary" style="width:100%;margin-top:10px">save fallback record</button>
+    <button id="savePhotoFallbackBtn" class="btn primary" style="width:100%;margin-top:10px">save product not found</button>
   </section>
 
   <section class="card">
@@ -188,7 +224,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 <script src="https://unpkg.com/@zxing/browser@latest"></script>
 <script>
-const APP_VERSION="0.1.3";
+const APP_VERSION="0.1.4";
 const RULES_URL="./bbb-rules.json";
 const USDA_WORKER="https://bad-belly-usda.phshbone.workers.dev";
 const STORAGE_KEY="bbb_collector_session_v010";
@@ -262,11 +298,13 @@ async function loadRules(){
 }
 function getSession(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");}catch(e){return []}}
 function setSession(v){localStorage.setItem(STORAGE_KEY,JSON.stringify(v));renderQueue()}
+function openInstructions(){show("instructions")}
+function closeInstructions(){hide("instructions")}
 function show(id){$(id).classList.remove("hidden")}
 function hide(id){$(id).classList.add("hidden")}
 function setStatus(msg){$("statusText").textContent=msg;show("statusCard")}
 function clearStatus(){hide("statusCard")}
-function resetResult(){current=null;hide("resultCard");hide("fallbackCard");frontPhoto="";ingredientPhoto="";$("frontPreview").src="";$("ingredientPreview").src="";hide("frontPreview");hide("ingredientPreview")}
+function resetResult(){current=null;hide("resultCard");hide("fallbackCard");hide("savedCard");frontPhoto="";ingredientPhoto="";$("frontPreview").src="";$("ingredientPreview").src="";hide("frontPreview");hide("ingredientPreview")}
 function renderQueue(){
   const items=getSession();
   $("sessionSummary").textContent=items.length?`${items.length} saved scan${items.length===1?"":"s"} ready to send.`:"No scans saved yet.";
@@ -325,7 +363,15 @@ async function openScanner(){
 function closeScanner(){$("barcodeOverlay").classList.remove("active");try{barcodeControls?.stop()}catch(e){};$("barcodeVideo").srcObject=null}
 function saveCurrent(extra={}){
   if(!current)return;
-  const items=getSession();items.push({...current,...extra});setSession(items.slice(-250));
+  const savedName=current.productName||current.status||"Product";
+  const items=getSession();
+  items.push({...current,...extra});
+  setSession(items.slice(-250));
+  $("savedProductName").textContent=savedName+" saved";
+  $("savedCountText").textContent=`Current session: ${getSession().length} saved scan${getSession().length===1?"":"s"}.`;
+  hide("resultCard");
+  hide("fallbackCard");
+  show("savedCard");
   $("sendNotice").innerHTML='<div class="notice">Saved to this session.</div>';
 }
 function compressImage(file,max=1200,quality=.8){
@@ -387,7 +433,7 @@ async function submitSession(){
     const d=await r.json();
     if(!r.ok||!d.success)throw new Error(d.error||"Submission failed");
     localStorage.removeItem(STORAGE_KEY);renderQueue();
-    $("sendNotice").innerHTML=`<div class="notice">Sent ${items.length} scan${items.length===1?"":"s"} to Bill.</div>`;
+    $("sendNotice").innerHTML=`<div class="notice">Sent ${items.length} scan${items.length===1?"":"s"} to Bill. The local session is now empty and ready for a new collection.</div>`;
   }catch(e){$("sendNotice").innerHTML='<div class="notice">Send failed. The scans remain on this phone. Try again later or export JSON.</div>'}
 }
 function exportJson(){
@@ -395,6 +441,10 @@ function exportJson(){
   const blob=new Blob([JSON.stringify({exportType:"BBB Research Session",exportedAt:new Date().toISOString(),tester:localStorage.getItem(TESTER_KEY)||"",products:items},null,2)],{type:"application/json"});
   const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`BBB_Research_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+$("instructionsBtn").onclick=openInstructions;
+$("closeInstructions").onclick=closeInstructions;
+$("savedScanAnotherBtn").onclick=()=>{resetResult();window.scrollTo({top:0,behavior:"smooth"});};
+$("savedSendBtn").onclick=submitSession;
 $("scanBarcodeBtn").onclick=openScanner;
 $("closeScannerBtn").onclick=closeScanner;
 $("noBarcodeFoundBtn").onclick=()=>{closeScanner();current={...recordBase("barcode_not_read"),productName:"Barcode not read",source:"Camera scanner"};show("fallbackCard")};
@@ -429,6 +479,7 @@ $("acceptAgreement").onclick=async()=>{
     localStorage.setItem(AGREEMENT_KEY,"1");
     localStorage.setItem(TESTER_KEY,testerName);
     hide("agreement");
+    openInstructions();
     $("sendNotice").innerHTML='<div class="notice">Beta agreement sent successfully.</div>';
   }catch(e){
     $("agreementStatus").innerHTML='<div class="notice">The agreement could not be sent. Check the connection and try again.</div>';
@@ -443,7 +494,11 @@ $("acceptAgreement").onclick=async()=>{
   if(!localStorage.getItem(TOKEN_KEY))localStorage.setItem(TOKEN_KEY,DEFAULT_TOKEN);
   $("endpointInput").value=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;
   $("tokenInput").value=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
-  if(localStorage.getItem(AGREEMENT_KEY)!=="1")show("agreement");
+  if(localStorage.getItem(AGREEMENT_KEY)!=="1"){
+    show("agreement");
+  }else{
+    openInstructions();
+  }
   await loadRules();renderQueue();
 })();
 </script>
