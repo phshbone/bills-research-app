@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1b2027">
-<title>bill's big belly — research collector</title>
+<title>bill's big belly — research collector v0.1.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baumans&display=swap" rel="stylesheet">
@@ -254,7 +254,7 @@ async function loadRules(){
     if(!r.ok)throw new Error();
     BBB_RULES=await r.json();
   }catch(e){
-    $("sendNotice").innerHTML='<div class="notice">bbb-rules.json did not load. Product collection still works, but the light will remain conservative.</div>';
+    $("sendNotice").innerHTML='<div class="notice">bbb-rules.json did not load. Put bbb-rules.json beside index.html on the test site. Barcode collection still works, but the light will remain conservative until the rules file loads.</div>';
   }
 }
 function getSession(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");}catch(e){return []}}
@@ -304,7 +304,7 @@ async function lookupBarcode(code){
   }
 }
 async function openScanner(){
-  resetResult();show("barcodeOverlay");barcodeLock=false;$("scannerStatus").textContent="Opening scanner…";
+  resetResult();$("barcodeOverlay").classList.add("active");barcodeLock=false;$("scannerStatus").textContent="Opening scanner…";
   try{
     barcodeReader=new ZXingBrowser.BrowserMultiFormatReader();
     const cb=(result,err,controls)=>{
@@ -319,7 +319,7 @@ async function openScanner(){
     $("scannerStatus").textContent="Scanning…";
   }catch(e){$("scannerStatus").textContent="Scanner could not open. Use manual barcode entry or take photos."}
 }
-function closeScanner(){hide("barcodeOverlay");try{barcodeControls?.stop()}catch(e){};$("barcodeVideo").srcObject=null}
+function closeScanner(){$("barcodeOverlay").classList.remove("active");try{barcodeControls?.stop()}catch(e){};$("barcodeVideo").srcObject=null}
 function saveCurrent(extra={}){
   if(!current)return;
   const items=getSession();items.push({...current,...extra});setSession(items.slice(-250));
