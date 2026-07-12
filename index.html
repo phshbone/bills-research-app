@@ -87,6 +87,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <input id="testerName" class="input" placeholder="first name or nickname">
     <label><input id="agreeBox" type="checkbox"> <span>I understand this is a research beta and not medical guidance.</span></label>
     <button id="acceptAgreement" class="btn primary" style="width:100%">continue</button>
+    <div id="agreementMessage"></div>
   </div>
 </div>
 
@@ -187,7 +188,8 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 <script src="https://unpkg.com/@zxing/browser@latest"></script>
 <script>
-const APP_VERSION="0.1.0";
+const APP_VERSION="0.1.3";
+const DEFAULT_APPS_SCRIPT_URL="PASTE_YOUR_WEB_APP_URL_HERE";
 const RULES_URL="./bbb-rules.json";
 const USDA_WORKER="https://bad-belly-usda.phshbone.workers.dev";
 const STORAGE_KEY="bbb_collector_session_v010";
@@ -377,11 +379,71 @@ $("sendSessionBtn").onclick=submitSession;
 $("exportBtn").onclick=exportJson;
 $("clearSessionBtn").onclick=()=>{if(confirm("Clear all saved scans?")){localStorage.removeItem(STORAGE_KEY);renderQueue()}};
 $("saveSetupBtn").onclick=()=>{localStorage.setItem(ENDPOINT_KEY,$("endpointInput").value.trim());localStorage.setItem(TOKEN_KEY,$("tokenInput").value.trim());$("sendNotice").innerHTML='<div class="notice">Collector setup saved on this device.</div>'};
-$("acceptAgreement").onclick=()=>{if(!$("agreeBox").checked||!$("testerName").value.trim())return;localStorage.setItem(AGREEMENT_KEY,"1");localStorage.setItem(TESTER_KEY,$("testerName").value.trim());hide("agreement")};
+$("acceptAgreement").onclick=async()=>{
+  const testerName=$("testerName").value.trim();
+  if(!$("agreeBox").checked||!testerName){
+    $("agreementMessage").innerHTML='<div class="notice">Enter a name or nickname and check the agreement box.</div>';
+    return;
+  }
+
+  const endpoint=localStorage.getItem(ENDPOINT_KEY)||(
+    DEFAULT_APPS_SCRIPT_URL!=="PASTE_YOUR_WEB_APP_URL_HERE"
+      ? DEFAULT_APPS_SCRIPT_URL
+      : ""
+  );
+  const token=localStorage.getItem(TOKEN_KEY)||"ezone-2026-secret-change-this";
+
+  if(!endpoint){
+    $("agreementMessage").innerHTML='<div class="notice">The Apps Script web-app URL has not been added yet. Add it in Collector Setup, then reopen the app and accept the agreement.</div>';
+    return;
+  }
+
+  const btn=$("acceptAgreement");
+  btn.disabled=true;
+  btn.textContent="sending…";
+  $("agreementMessage").innerHTML='<div class="notice">Sending agreement to Bill…</div>';
+
+  try{
+    const payload={
+      token,
+      submissionType:"bbbResearchAgreement",
+      testerName,
+      timestamp:new Date().toISOString(),
+      localTime:new Date().toLocaleString(),
+      appVersion:APP_VERSION,
+      agreementVersion:"BBB Research Agreement v1",
+      acknowledged:true,
+      device:navigator.platform||"",
+      userAgent:navigator.userAgent
+    };
+
+    const response=await fetch(endpoint,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(payload)
+    });
+
+    const result=await response.json();
+    if(!response.ok||!result.success)throw new Error(result.error||"Agreement submission failed");
+
+    localStorage.setItem(AGREEMENT_KEY,"1");
+    localStorage.setItem(TESTER_KEY,testerName);
+    localStorage.setItem(ENDPOINT_KEY,endpoint);
+    localStorage.setItem(TOKEN_KEY,token);
+    hide("agreement");
+  }catch(error){
+    $("agreementMessage").innerHTML='<div class="notice">Agreement could not be sent. Nothing was accepted on this device. Check the web-app URL and try again.</div>';
+  }finally{
+    btn.disabled=false;
+    btn.textContent="continue";
+  }
+};
 
 (async function init(){
-  $("endpointInput").value=localStorage.getItem(ENDPOINT_KEY)||"";
-  $("tokenInput").value=localStorage.getItem(TOKEN_KEY)||"";
+  const savedEndpoint=localStorage.getItem(ENDPOINT_KEY)||"";
+  const defaultEndpoint=DEFAULT_APPS_SCRIPT_URL!=="PASTE_YOUR_WEB_APP_URL_HERE"?DEFAULT_APPS_SCRIPT_URL:"";
+  $("endpointInput").value=savedEndpoint||defaultEndpoint;
+  $("tokenInput").value=localStorage.getItem(TOKEN_KEY)||"ezone-2026-secret-change-this";
   if(localStorage.getItem(AGREEMENT_KEY)!=="1")show("agreement");
   await loadRules();renderQueue();
 })();
