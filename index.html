@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#1b2027">
-<title>bill's big belly — research collector v0.1.4 store test build</title>
+<title>bill's big belly — research collector v0.1.5 scanner fixes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baumans&display=swap" rel="stylesheet">
@@ -39,6 +39,10 @@ h1{margin:0;font-size:1.9rem;line-height:1;color:var(--purple2);text-shadow:0 2p
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}
 .grid.one{grid-template-columns:1fr}
 .input{width:100%;min-height:48px;border:1px solid rgba(184,154,192,.24);border-radius:15px;padding:11px 12px;background:rgba(17,21,26,.48);color:var(--cream);outline:none}
+.manual-input-wrap{position:relative}
+.manual-barcode-input{padding-right:52px}
+.manual-clear-btn{position:absolute;top:50%;right:8px;transform:translateY(-50%);width:36px;height:36px;padding:0;display:grid;place-items:center;border:0;border-radius:50%;background:rgba(184,154,192,.18);color:var(--cream);font-size:1.55rem;line-height:1;cursor:pointer;touch-action:manipulation}
+.manual-clear-btn:active{transform:translateY(-50%) scale(.94)}
 textarea.input{min-height:90px;resize:vertical}
 .small{font-size:.8rem!important}
 .hidden{display:none!important}
@@ -95,7 +99,6 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   <div class="agreement-card">
     <p class="eyebrow">30-second instructions</p>
     <h2>help build bill's food library</h2>
-
     <div style="display:grid;gap:12px;margin-top:14px">
       <div><strong>1. Scan Barcode</strong><br><span style="color:var(--muted)">Tap the large Scan Barcode button.</span></div>
       <div><strong>2. Save Scan</strong><br><span style="color:var(--muted)">When the product appears, tap Save Scan.</span></div>
@@ -104,11 +107,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
       <div><strong>5. Send to Bill</strong><br><span style="color:var(--muted)">When finished, send the whole session.</span></div>
       <div><strong>6. Clear Session</strong><br><span style="color:var(--muted)">After a successful send, clear everything to start fresh.</span></div>
     </div>
-
-    <p class="notice" style="margin-top:14px">
-      You do not need to know anything about Crohn's disease. Just scan packaged foods.
-    </p>
-
+    <p class="notice" style="margin-top:14px">You do not need to know anything about Crohn's disease. Just scan packaged foods.</p>
     <button id="closeInstructions" class="btn primary" style="width:100%;margin-top:12px">start scanning</button>
   </div>
 </div>
@@ -131,10 +130,13 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <div class="grid one">
       <button id="manualEntryBtn" class="btn">type barcode instead</button>
     </div>
-    <div id="manualBox" class="hidden" style="margin-top:10px">
-      <input id="manualBarcode" class="input" inputmode="numeric" placeholder="barcode number">
-      <button id="manualLookupBtn" class="btn primary" style="width:100%;margin-top:8px">look up</button>
-    </div>
+    <form id="manualBarcodeForm" class="hidden" style="margin-top:10px">
+      <div class="manual-input-wrap">
+        <input id="manualBarcode" class="input manual-barcode-input" type="text" inputmode="numeric" enterkeyhint="go" autocomplete="off" pattern="[0-9]*" placeholder="barcode number" aria-label="Barcode number">
+        <button id="clearManualBarcodeBtn" class="manual-clear-btn hidden" type="button" aria-label="Clear barcode">×</button>
+      </div>
+      <button id="manualLookupBtn" class="btn primary" type="submit" style="width:100%;margin-top:8px">look up</button>
+    </form>
   </section>
 
   <section class="card hidden" id="statusCard">
@@ -146,10 +148,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <p class="eyebrow">scan complete</p>
     <div class="product-name" id="productName">Product</div>
     <div class="product-brand" id="productBrand"></div>
-    <div class="light-wrap">
-      <div id="ratingLight" class="light gray"></div>
-      <div class="status-light-label">research classification</div>
-    </div>
+    <div class="light-wrap"><div id="ratingLight" class="light gray"></div><div class="status-light-label">research classification</div></div>
     <div class="meta" id="resultMeta"></div>
     <div class="grid">
       <button id="saveResultBtn" class="btn primary">save scan</button>
@@ -224,7 +223,7 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
 <script src="https://unpkg.com/@zxing/browser@latest"></script>
 <script>
-const APP_VERSION="0.1.4";
+const APP_VERSION="0.1.5";
 const RULES_URL="./bbb-rules.json";
 const USDA_WORKER="https://bad-belly-usda.phshbone.workers.dev";
 const STORAGE_KEY="bbb_collector_session_v010";
@@ -242,265 +241,68 @@ let frontPhoto="",ingredientPhoto="";
 const $=id=>document.getElementById(id);
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
 function norm(s){return String(s||"").toLowerCase().replace(/[^a-z0-9%\.\s-]/g," ").replace(/\s+/g," ").trim();}
-function termMatch(text,term){
-  const h=norm(text),t=norm(term); if(!h||!t)return false;
-  const e=t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+");
-  return new RegExp(`(^|\\b)${e}(?=\\b|$)`,"i").test(h);
-}
+function termMatch(text,term){const h=norm(text),t=norm(term);if(!h||!t)return false;const e=t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/\s+/g,"\\s+");return new RegExp(`(^|\\b)${e}(?=\\b|$)`,"i").test(h);}
 function ratingScore(r){return ({usually_gentle:1,good:1,caution:2,flare_caution:3,personal_trigger:4,likely_rough:5,unknown:2})[r]||2;}
 function displayClass(r){return ratingScore(r)>=5?"red":ratingScore(r)>=2?"yellow":"green";}
-function sourceTextOFF(p){
-  const bits=[];
-  if(p.product_name)bits.push(`Product: ${p.product_name}`);
-  if(p.brands)bits.push(`Brand: ${p.brands}`);
-  if(p.categories)bits.push(`Categories: ${p.categories}`);
-  if(p.ingredients_text)bits.push(`Ingredients: ${p.ingredients_text}`);
-  const n=p.nutriments||{}, vals=[];
-  [["fiber","Fiber"],["fat","Total fat"],["sugars","Sugar"],["proteins","Protein"],["sodium","Sodium"]].forEach(([k,l])=>{if(n[k]!=null)vals.push(`${l}: ${n[k]}${n[k+"_unit"]||""}`)});
-  if(vals.length)bits.push(`Nutrition: ${vals.join("; ")}`);
-  return bits.join("\n");
-}
-function summarizeOFF(p,code){return {name:p.product_name||p.generic_name||"Product found",brand:p.brands||"",barcode:code,source:"Open Food Facts",rawText:sourceTextOFF(p)}}
-function summarizeUSDA(f,code){
-  const bits=[`Product: ${f.description||"USDA product"}`];
-  if(f.brandName||f.brandOwner)bits.push(`Brand: ${f.brandName||f.brandOwner}`);
-  if(f.ingredients)bits.push(`Ingredients: ${f.ingredients}`);
-  if(f.foodCategory)bits.push(`Category: ${f.foodCategory}`);
-  return {name:f.description||"USDA product",brand:f.brandName||f.brandOwner||"",barcode:f.gtinUpc||code,source:"USDA FoodData Central",rawText:bits.join("\n")};
-}
-function analyze(raw,name){
-  const input=[name,raw].filter(Boolean).join("\n");
-  const cats=(BBB_RULES.foodCategories||[]).filter(r=>(r.terms||[]).some(t=>termMatch(input,t))).sort((a,b)=>(b.priority||0)-(a.priority||0));
-  const dom=(BBB_RULES.dominantFoodRules||[]).filter(r=>(r.aliases||[]).some(t=>termMatch(input,t)));
-  const fam=(BBB_RULES.ingredientFamilies||[]).filter(r=>(r.aliases||[]).some(t=>termMatch(input,t)));
-  const items=[cats[0],...dom,...fam].filter(Boolean);
-  let rating="unknown";
-  if(items.length){
-    rating=items.map(x=>x.normal||"caution").sort((a,b)=>ratingScore(b)-ratingScore(a))[0];
-  }
-  return {
-    internalRating:rating,
-    light:displayClass(rating),
-    primaryCategory:cats[0]?.label||"unknown",
-    mainFoods:dom.map(x=>x.label||x.id),
-    ingredientFamilies:fam.map(x=>({id:x.id,label:x.label||x.id})),
-    rulesVersion:BBB_RULES.version||"unknown"
-  };
-}
-async function loadRules(){
-  try{
-    const r=await fetch(RULES_URL,{cache:"no-store"});
-    if(!r.ok)throw new Error();
-    BBB_RULES=await r.json();
-  }catch(e){
-    $("sendNotice").innerHTML='<div class="notice">bbb-rules.json did not load. Put bbb-rules.json beside index.html on the test site. Barcode collection still works, but the light will remain conservative until the rules file loads.</div>';
-  }
-}
-function getSession(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");}catch(e){return []}}
-function setSession(v){localStorage.setItem(STORAGE_KEY,JSON.stringify(v));renderQueue()}
-function openInstructions(){show("instructions")}
-function closeInstructions(){hide("instructions")}
-function show(id){$(id).classList.remove("hidden")}
-function hide(id){$(id).classList.add("hidden")}
-function setStatus(msg){$("statusText").textContent=msg;show("statusCard")}
-function clearStatus(){hide("statusCard")}
-function resetResult(){current=null;hide("resultCard");hide("fallbackCard");hide("savedCard");frontPhoto="";ingredientPhoto="";$("frontPreview").src="";$("ingredientPreview").src="";hide("frontPreview");hide("ingredientPreview")}
-function renderQueue(){
-  const items=getSession();
-  $("sessionSummary").textContent=items.length?`${items.length} saved scan${items.length===1?"":"s"} ready to send.`:"No scans saved yet.";
-  $("queueList").innerHTML=items.slice(-6).reverse().map(x=>`<div class="queue-item"><strong>${esc(x.productName||x.status)}</strong><span>${esc(x.source||"")} • ${esc(x.status)} • ${new Date(x.createdAt).toLocaleString()}</span></div>`).join("");
-}
-function recordBase(status){
-  return {id:(crypto.randomUUID?.()||String(Date.now())),status,appVersion:APP_VERSION,rulesVersion:BBB_RULES.version||"unknown",tester:localStorage.getItem(TESTER_KEY)||"",createdAt:new Date().toISOString()};
-}
-function showResult(product){
-  current={...recordBase("barcode_found"),productName:product.name,brand:product.brand,barcode:product.barcode,source:product.source,rawText:product.rawText,analysis:analyze(product.rawText,product.name)};
-  $("productName").textContent=current.productName;
-  $("productBrand").textContent=current.brand;
-  $("ratingLight").className=`light ${current.analysis.light}`;
-  $("resultMeta").innerHTML=`<div>source: ${esc(current.source)}</div><div>barcode: ${esc(current.barcode)}</div><div>rules: ${esc(current.analysis.rulesVersion)}</div>`;
-  clearStatus();hide("fallbackCard");show("resultCard");
-}
-async function lookupOFF(code){
-  const fields="product_name,generic_name,brands,categories,ingredients_text,nutriments";
-  const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=${fields}`);
-  const d=await r.json();
-  return d?.status===1&&d.product?summarizeOFF(d.product,code):null;
-}
-async function lookupUSDA(code){
-  const r=await fetch(`${USDA_WORKER}/search?query=${encodeURIComponent(code)}&pageSize=10&mode=all`);
-  const d=await r.json();
-  if(!r.ok||!d?.ok||!Array.isArray(d.foods)||!d.foods.length)return null;
-  const exact=d.foods.find(f=>String(f.gtinUpc||"").replace(/\D/g,"")===String(code).replace(/\D/g,""));
-  return summarizeUSDA(exact||d.foods[0],code);
-}
-async function lookupBarcode(code){
-  resetResult();setStatus("Checking Open Food Facts…");
-  let found=null;
-  try{found=await lookupOFF(code)}catch(e){}
-  if(!found){setStatus("Not found there. Checking USDA…");try{found=await lookupUSDA(code)}catch(e){}}
-  if(found)showResult(found);
-  else{
-    clearStatus();current={...recordBase("product_not_found"),barcode:code,productName:"Product not found",source:"No database match"};show("fallbackCard");
-  }
-}
-async function openScanner(){
-  resetResult();$("barcodeOverlay").classList.add("active");barcodeLock=false;$("scannerStatus").textContent="Opening scanner…";
-  try{
-    barcodeReader=new ZXingBrowser.BrowserMultiFormatReader();
-    const cb=(result,err,controls)=>{
-      if(result&&!barcodeLock){
-        barcodeLock=true;
-        const code=(result.getText?result.getText():String(result.text||result)).replace(/\D/g,"");
-        try{controls.stop()}catch(e){}
-        closeScanner();lookupBarcode(code);
-      }
-    };
-    barcodeControls=await barcodeReader.decodeFromConstraints({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}}},$("barcodeVideo"),cb);
-    $("scannerStatus").textContent="Scanning…";
-  }catch(e){$("scannerStatus").textContent="Scanner could not open. Use manual barcode entry or take photos."}
-}
-function closeScanner(){$("barcodeOverlay").classList.remove("active");try{barcodeControls?.stop()}catch(e){};$("barcodeVideo").srcObject=null}
-function saveCurrent(extra={}){
-  if(!current)return;
-  const savedName=current.productName||current.status||"Product";
-  const items=getSession();
-  items.push({...current,...extra});
-  setSession(items.slice(-250));
-  $("savedProductName").textContent=savedName+" saved";
-  $("savedCountText").textContent=`Current session: ${getSession().length} saved scan${getSession().length===1?"":"s"}.`;
-  hide("resultCard");
-  hide("fallbackCard");
-  show("savedCard");
-  $("sendNotice").innerHTML='<div class="notice">Saved to this session.</div>';
-}
-function compressImage(file,max=1200,quality=.8){
-  return new Promise((resolve,reject)=>{
-    const reader=new FileReader();
-    reader.onload=()=>{
-      const img=new Image();
-      img.onload=()=>{
-        const scale=Math.min(1,max/Math.max(img.width,img.height));
-        const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
-        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-        resolve(c.toDataURL("image/jpeg",quality));
-      };
-      img.onerror=reject;img.src=reader.result;
-    };
-    reader.onerror=reject;reader.readAsDataURL(file);
-  })
-}
+function sourceTextOFF(p){const bits=[];if(p.product_name)bits.push(`Product: ${p.product_name}`);if(p.brands)bits.push(`Brand: ${p.brands}`);if(p.categories)bits.push(`Categories: ${p.categories}`);if(p.ingredients_text)bits.push(`Ingredients: ${p.ingredients_text}`);const n=p.nutriments||{},vals=[];[["fiber","Fiber"],["fat","Total fat"],["sugars","Sugar"],["proteins","Protein"],["sodium","Sodium"]].forEach(([k,l])=>{if(n[k]!=null)vals.push(`${l}: ${n[k]}${n[k+"_unit"]||""}`)});if(vals.length)bits.push(`Nutrition: ${vals.join("; ")}`);return bits.join("\n");}
+function summarizeOFF(p,code){return {name:p.product_name||p.generic_name||"Product found",brand:p.brands||"",barcode:code,source:"Open Food Facts",rawText:sourceTextOFF(p)};}
+function summarizeUSDA(f,code){const bits=[`Product: ${f.description||"USDA product"}`];if(f.brandName||f.brandOwner)bits.push(`Brand: ${f.brandName||f.brandOwner}`);if(f.ingredients)bits.push(`Ingredients: ${f.ingredients}`);if(f.foodCategory)bits.push(`Category: ${f.foodCategory}`);return {name:f.description||"USDA product",brand:f.brandName||f.brandOwner||"",barcode:f.gtinUpc||code,source:"USDA FoodData Central",rawText:bits.join("\n")};}
+function analyze(raw,name){const input=[name,raw].filter(Boolean).join("\n");const cats=(BBB_RULES.foodCategories||[]).filter(r=>(r.terms||[]).some(t=>termMatch(input,t))).sort((a,b)=>(b.priority||0)-(a.priority||0));const dom=(BBB_RULES.dominantFoodRules||[]).filter(r=>(r.aliases||[]).some(t=>termMatch(input,t)));const fam=(BBB_RULES.ingredientFamilies||[]).filter(r=>(r.aliases||[]).some(t=>termMatch(input,t)));const items=[cats[0],...dom,...fam].filter(Boolean);let rating="unknown";if(items.length)rating=items.map(x=>x.normal||"caution").sort((a,b)=>ratingScore(b)-ratingScore(a))[0];return {internalRating:rating,light:displayClass(rating),primaryCategory:cats[0]?.label||"unknown",mainFoods:dom.map(x=>x.label||x.id),ingredientFamilies:fam.map(x=>({id:x.id,label:x.label||x.id})),rulesVersion:BBB_RULES.version||"unknown"};}
+async function loadRules(){try{const r=await fetch(RULES_URL,{cache:"no-store"});if(!r.ok)throw new Error();BBB_RULES=await r.json();}catch(e){$("sendNotice").innerHTML='<div class="notice">bbb-rules.json did not load. Put bbb-rules.json beside index.html on the test site. Barcode collection still works, but the light will remain conservative until the rules file loads.</div>';}}
+function getSession(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]");}catch(e){return [];}}
+function setSession(v){localStorage.setItem(STORAGE_KEY,JSON.stringify(v));renderQueue();}
+function openInstructions(){show("instructions");}
+function closeInstructions(){hide("instructions");}
+function show(id){$(id).classList.remove("hidden");}
+function hide(id){$(id).classList.add("hidden");}
+function setStatus(msg){$("statusText").textContent=msg;show("statusCard");}
+function clearStatus(){hide("statusCard");}
+function updateManualClearButton(){const hasValue=$("manualBarcode").value.trim().length>0;$("clearManualBarcodeBtn").classList.toggle("hidden",!hasValue);}
+function clearManualBarcode(){$("manualBarcode").value="";updateManualClearButton();}
+function openManualEntry(){show("manualBarcodeForm");setTimeout(()=>$("manualBarcode").focus(),50);}
+function toggleManualEntry(){const form=$("manualBarcodeForm");if(form.classList.contains("hidden"))openManualEntry();else hide("manualBarcodeForm");}
+function submitManualBarcode(){const code=$("manualBarcode").value.replace(/\D/g,"");if(!code)return;lookupBarcode(code);}
+function resetResult(){current=null;hide("resultCard");hide("fallbackCard");hide("savedCard");frontPhoto="";ingredientPhoto="";$("frontPreview").src="";$("ingredientPreview").src="";hide("frontPreview");hide("ingredientPreview");}
+function renderQueue(){const items=getSession();$("sessionSummary").textContent=items.length?`${items.length} saved scan${items.length===1?"":"s"} ready to send.`:"No scans saved yet.";$("queueList").innerHTML=items.slice(-6).reverse().map(x=>`<div class="queue-item"><strong>${esc(x.productName||x.status)}</strong><span>${esc(x.source||"")} • ${esc(x.status)} • ${new Date(x.createdAt).toLocaleString()}</span></div>`).join("");}
+function recordBase(status){return {id:(crypto.randomUUID?.()||String(Date.now())),status,appVersion:APP_VERSION,rulesVersion:BBB_RULES.version||"unknown",tester:localStorage.getItem(TESTER_KEY)||"",createdAt:new Date().toISOString()};}
+function showResult(product){current={...recordBase("barcode_found"),productName:product.name,brand:product.brand,barcode:product.barcode,source:product.source,rawText:product.rawText,analysis:analyze(product.rawText,product.name)};$("productName").textContent=current.productName;$("productBrand").textContent=current.brand;$("ratingLight").className=`light ${current.analysis.light}`;$("resultMeta").innerHTML=`<div>source: ${esc(current.source)}</div><div>barcode: ${esc(current.barcode)}</div><div>rules: ${esc(current.analysis.rulesVersion)}</div>`;clearManualBarcode();clearStatus();hide("fallbackCard");show("resultCard");}
+async function lookupOFF(code){const fields="product_name,generic_name,brands,categories,ingredients_text,nutriments";const r=await fetch(`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=${fields}`);const d=await r.json();return d?.status===1&&d.product?summarizeOFF(d.product,code):null;}
+async function lookupUSDA(code){const r=await fetch(`${USDA_WORKER}/search?query=${encodeURIComponent(code)}&pageSize=10&mode=all`);const d=await r.json();if(!r.ok||!d?.ok||!Array.isArray(d.foods)||!d.foods.length)return null;const exact=d.foods.find(f=>String(f.gtinUpc||"").replace(/\D/g,"")===String(code).replace(/\D/g,""));return summarizeUSDA(exact||d.foods[0],code);}
+async function lookupBarcode(code){resetResult();setStatus("Checking Open Food Facts…");let found=null;try{found=await lookupOFF(code);}catch(e){}if(!found){setStatus("Not found there. Checking USDA…");try{found=await lookupUSDA(code);}catch(e){}}if(found)showResult(found);else{clearManualBarcode();clearStatus();current={...recordBase("product_not_found"),barcode:code,productName:"Product not found",source:"No database match"};show("fallbackCard");}}
+async function openScanner(){resetResult();clearManualBarcode();hide("manualBarcodeForm");$("barcodeOverlay").classList.add("active");barcodeLock=false;$("scannerStatus").textContent="Opening scanner…";try{barcodeReader=new ZXingBrowser.BrowserMultiFormatReader();const cb=(result,err,controls)=>{if(result&&!barcodeLock){barcodeLock=true;const code=(result.getText?result.getText():String(result.text||result)).replace(/\D/g,"");try{controls.stop();}catch(e){}closeScanner();lookupBarcode(code);}};barcodeControls=await barcodeReader.decodeFromConstraints({audio:false,video:{facingMode:{ideal:"environment"},width:{ideal:1920},height:{ideal:1080}}},$("barcodeVideo"),cb);$("scannerStatus").textContent="Scanning…";}catch(e){$("scannerStatus").textContent="Scanner could not open. Use manual barcode entry or take photos.";}}
+function closeScanner(){$("barcodeOverlay").classList.remove("active");try{barcodeControls?.stop();}catch(e){}$("barcodeVideo").srcObject=null;}
+function saveCurrent(extra={}){if(!current)return;const savedName=current.productName||current.status||"Product";const items=getSession();items.push({...current,...extra});setSession(items.slice(-250));$("savedProductName").textContent=savedName+" saved";$("savedCountText").textContent=`Current session: ${getSession().length} saved scan${getSession().length===1?"":"s"}.`;hide("resultCard");hide("fallbackCard");show("savedCard");$("sendNotice").innerHTML='<div class="notice">Saved to this session.</div>';}
+function compressImage(file,max=1200,quality=.8){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement("canvas");c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext("2d").drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",quality));};img.onerror=reject;img.src=reader.result;};reader.onerror=reject;reader.readAsDataURL(file);});}
+async function submitBetaAgreement(testerName){const endpoint=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;const token=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;const payload={token,submissionType:"betaAgreement",betaRecord:{kind:"betaAgreement",testerName,timestamp:new Date().toISOString(),localTime:new Date().toLocaleString(),appVersion:APP_VERSION,agreementVersion:"BBB Research Collector v1",acknowledged:true,device:navigator.platform||"",userAgent:navigator.userAgent||""}};const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});const data=await response.json();if(!response.ok||!data.success)throw new Error((data&&data.error)||"Agreement submission failed");return data;}
+async function submitSession(){const items=getSession(),endpoint=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT,token=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;if(!items.length){$("sendNotice").innerHTML='<div class="notice">Nothing is saved yet.</div>';return;}if(!endpoint){$("sendNotice").innerHTML='<div class="notice">Add the Apps Script URL in Collector Setup, or export the JSON file.</div>';return;}$("sendNotice").innerHTML='<div class="notice">Sending session…</div>';try{const r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token,submissionType:"bbbResearchSession",tester:localStorage.getItem(TESTER_KEY)||"",appVersion:APP_VERSION,submittedAt:new Date().toISOString(),products:items})});const d=await r.json();if(!r.ok||!d.success)throw new Error(d.error||"Submission failed");localStorage.removeItem(STORAGE_KEY);renderQueue();$("sendNotice").innerHTML=`<div class="notice">Sent ${items.length} scan${items.length===1?"":"s"} to Bill. The local session is now empty and ready for a new collection.</div>`;}catch(e){$("sendNotice").innerHTML='<div class="notice">Send failed. The scans remain on this phone. Try again later or export JSON.</div>';}}
+function exportJson(){const items=getSession();if(!items.length)return;const blob=new Blob([JSON.stringify({exportType:"BBB Research Session",exportedAt:new Date().toISOString(),tester:localStorage.getItem(TESTER_KEY)||"",products:items},null,2)],{type:"application/json"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`BBB_Research_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
-async function submitBetaAgreement(testerName){
-  const endpoint=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;
-  const token=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
-  const payload={
-    token,
-    submissionType:"betaAgreement",
-    betaRecord:{
-      kind:"betaAgreement",
-      testerName,
-      timestamp:new Date().toISOString(),
-      localTime:new Date().toLocaleString(),
-      appVersion:APP_VERSION,
-      agreementVersion:"BBB Research Collector v1",
-      acknowledged:true,
-      device:navigator.platform||"",
-      userAgent:navigator.userAgent||""
-    }
-  };
-
-  const response=await fetch(endpoint,{
-    method:"POST",
-    headers:{"Content-Type":"text/plain;charset=utf-8"},
-    body:JSON.stringify(payload)
-  });
-
-  const data=await response.json();
-  if(!response.ok||!data.success){
-    throw new Error((data&&data.error)||"Agreement submission failed");
-  }
-  return data;
-}
-
-async function submitSession(){
-  const items=getSession(), endpoint=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT, token=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
-  if(!items.length){$("sendNotice").innerHTML='<div class="notice">Nothing is saved yet.</div>';return}
-  if(!endpoint){$("sendNotice").innerHTML='<div class="notice">Add the Apps Script URL in Collector Setup, or export the JSON file.</div>';return}
-  $("sendNotice").innerHTML='<div class="notice">Sending session…</div>';
-  try{
-    const r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({token,submissionType:"bbbResearchSession",tester:localStorage.getItem(TESTER_KEY)||"",appVersion:APP_VERSION,submittedAt:new Date().toISOString(),products:items})});
-    const d=await r.json();
-    if(!r.ok||!d.success)throw new Error(d.error||"Submission failed");
-    localStorage.removeItem(STORAGE_KEY);renderQueue();
-    $("sendNotice").innerHTML=`<div class="notice">Sent ${items.length} scan${items.length===1?"":"s"} to Bill. The local session is now empty and ready for a new collection.</div>`;
-  }catch(e){$("sendNotice").innerHTML='<div class="notice">Send failed. The scans remain on this phone. Try again later or export JSON.</div>'}
-}
-function exportJson(){
-  const items=getSession();if(!items.length)return;
-  const blob=new Blob([JSON.stringify({exportType:"BBB Research Session",exportedAt:new Date().toISOString(),tester:localStorage.getItem(TESTER_KEY)||"",products:items},null,2)],{type:"application/json"});
-  const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=`BBB_Research_${new Date().toISOString().slice(0,10)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
 $("instructionsBtn").onclick=openInstructions;
 $("closeInstructions").onclick=closeInstructions;
-$("savedScanAnotherBtn").onclick=()=>{resetResult();window.scrollTo({top:0,behavior:"smooth"});};
+$("savedScanAnotherBtn").onclick=openScanner;
 $("savedSendBtn").onclick=submitSession;
 $("scanBarcodeBtn").onclick=openScanner;
 $("closeScannerBtn").onclick=closeScanner;
-$("noBarcodeFoundBtn").onclick=()=>{closeScanner();current={...recordBase("barcode_not_read"),productName:"Barcode not read",source:"Camera scanner"};show("fallbackCard")};
-$("manualEntryBtn").onclick=()=>$("manualBox").classList.toggle("hidden");
-$("manualLookupBtn").onclick=()=>{const code=$("manualBarcode").value.replace(/\D/g,"");if(code)lookupBarcode(code)};
+$("noBarcodeFoundBtn").onclick=()=>{closeScanner();current={...recordBase("barcode_not_read"),productName:"Barcode not read",source:"Camera scanner"};show("fallbackCard");};
+$("manualEntryBtn").onclick=toggleManualEntry;
+$("manualBarcode").addEventListener("input",()=>{const cleaned=$("manualBarcode").value.replace(/\D/g,"");if($("manualBarcode").value!==cleaned)$("manualBarcode").value=cleaned;updateManualClearButton();});
+$("clearManualBarcodeBtn").onclick=()=>{clearManualBarcode();$("manualBarcode").focus();};
+$("manualBarcodeForm").addEventListener("submit",e=>{e.preventDefault();submitManualBarcode();});
 $("retryBtn").onclick=openScanner;
-$("scanAnotherBtn").onclick=()=>{resetResult();window.scrollTo({top:0,behavior:"smooth"})};
+$("scanAnotherBtn").onclick=openScanner;
 $("saveResultBtn").onclick=()=>saveCurrent();
-$("wrongProductBtn").onclick=()=>{saveCurrent({status:"wrong_product"});resetResult()};
-$("saveNoBarcodeBtn").onclick=()=>{saveCurrent();resetResult()};
-$("savePhotoFallbackBtn").onclick=()=>{if(!current)current={...recordBase("photo_fallback"),productName:"Photo fallback"};saveCurrent({status:"photo_fallback",frontPhoto,ingredientPhoto});resetResult()};
-$("frontPhotoInput").onchange=async e=>{if(e.target.files[0]){frontPhoto=await compressImage(e.target.files[0]);$("frontPreview").src=frontPhoto;show("frontPreview")}};
-$("ingredientPhotoInput").onchange=async e=>{if(e.target.files[0]){ingredientPhoto=await compressImage(e.target.files[0]);$("ingredientPreview").src=ingredientPhoto;show("ingredientPreview")}};
+$("wrongProductBtn").onclick=()=>{saveCurrent({status:"wrong_product"});resetResult();};
+$("saveNoBarcodeBtn").onclick=()=>{saveCurrent();resetResult();};
+$("savePhotoFallbackBtn").onclick=()=>{if(!current)current={...recordBase("photo_fallback"),productName:"Photo fallback"};saveCurrent({status:"photo_fallback",frontPhoto,ingredientPhoto});resetResult();};
+$("frontPhotoInput").onchange=async e=>{if(e.target.files[0]){frontPhoto=await compressImage(e.target.files[0]);$("frontPreview").src=frontPhoto;show("frontPreview");}};
+$("ingredientPhotoInput").onchange=async e=>{if(e.target.files[0]){ingredientPhoto=await compressImage(e.target.files[0]);$("ingredientPreview").src=ingredientPhoto;show("ingredientPreview");}};
 $("sendSessionBtn").onclick=submitSession;
 $("exportBtn").onclick=exportJson;
-$("clearSessionBtn").onclick=()=>{if(confirm("Clear all saved scans?")){localStorage.removeItem(STORAGE_KEY);renderQueue()}};
-$("saveSetupBtn").onclick=()=>{localStorage.setItem(ENDPOINT_KEY,$("endpointInput").value.trim());localStorage.setItem(TOKEN_KEY,$("tokenInput").value.trim());$("sendNotice").innerHTML='<div class="notice">Collector setup saved on this device.</div>'};
-$("acceptAgreement").onclick=async()=>{
-  const testerName=$("testerName").value.trim();
-  if(!$("agreeBox").checked||!testerName){
-    $("agreementStatus").innerHTML='<div class="notice">Enter a name or nickname and check the agreement box.</div>';
-    return;
-  }
+$("clearSessionBtn").onclick=()=>{if(confirm("Clear all saved scans?")){localStorage.removeItem(STORAGE_KEY);renderQueue();}};
+$("saveSetupBtn").onclick=()=>{localStorage.setItem(ENDPOINT_KEY,$("endpointInput").value.trim());localStorage.setItem(TOKEN_KEY,$("tokenInput").value.trim());$("sendNotice").innerHTML='<div class="notice">Collector setup saved on this device.</div>';};
+$("acceptAgreement").onclick=async()=>{const testerName=$("testerName").value.trim();if(!$("agreeBox").checked||!testerName){$("agreementStatus").innerHTML='<div class="notice">Enter a name or nickname and check the agreement box.</div>';return;}const button=$("acceptAgreement");button.disabled=true;button.textContent="sending agreement…";$("agreementStatus").innerHTML="";try{await submitBetaAgreement(testerName);localStorage.setItem(AGREEMENT_KEY,"1");localStorage.setItem(TESTER_KEY,testerName);hide("agreement");openInstructions();$("sendNotice").innerHTML='<div class="notice">Beta agreement sent successfully.</div>';}catch(e){$("agreementStatus").innerHTML='<div class="notice">The agreement could not be sent. Check the connection and try again.</div>';}finally{button.disabled=false;button.textContent="continue";}};
 
-  const button=$("acceptAgreement");
-  button.disabled=true;
-  button.textContent="sending agreement…";
-  $("agreementStatus").innerHTML="";
-
-  try{
-    await submitBetaAgreement(testerName);
-    localStorage.setItem(AGREEMENT_KEY,"1");
-    localStorage.setItem(TESTER_KEY,testerName);
-    hide("agreement");
-    openInstructions();
-    $("sendNotice").innerHTML='<div class="notice">Beta agreement sent successfully.</div>';
-  }catch(e){
-    $("agreementStatus").innerHTML='<div class="notice">The agreement could not be sent. Check the connection and try again.</div>';
-  }finally{
-    button.disabled=false;
-    button.textContent="continue";
-  }
-};
-
-(async function init(){
-  if(!localStorage.getItem(ENDPOINT_KEY))localStorage.setItem(ENDPOINT_KEY,DEFAULT_ENDPOINT);
-  if(!localStorage.getItem(TOKEN_KEY))localStorage.setItem(TOKEN_KEY,DEFAULT_TOKEN);
-  $("endpointInput").value=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;
-  $("tokenInput").value=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;
-  if(localStorage.getItem(AGREEMENT_KEY)!=="1"){
-    show("agreement");
-  }else{
-    openInstructions();
-  }
-  await loadRules();renderQueue();
-})();
+(async function init(){if(!localStorage.getItem(ENDPOINT_KEY))localStorage.setItem(ENDPOINT_KEY,DEFAULT_ENDPOINT);if(!localStorage.getItem(TOKEN_KEY))localStorage.setItem(TOKEN_KEY,DEFAULT_TOKEN);$("endpointInput").value=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;$("tokenInput").value=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;if(localStorage.getItem(AGREEMENT_KEY)!=="1")show("agreement");else openInstructions();await loadRules();renderQueue();updateManualClearButton();})();
 </script>
 </body>
 </html>
