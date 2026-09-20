@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Baumans&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./sound-lab.css">
 <style>
 :root{
   --display:"Baumans","Arial Rounded MT Bold",system-ui,sans-serif;
@@ -122,6 +123,11 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
     <button id="instructionsBtn" class="btn" style="min-height:40px;padding:8px 10px">instructions</button>
   </header>
 
+  <nav class="research-tabs" aria-label="Research tool">
+    <button class="research-tab active" type="button" data-research-tab="scanner" role="tab" aria-selected="true">scanner</button>
+    <button class="research-tab" type="button" data-research-tab="lab" role="tab" aria-selected="false">test lab</button>
+  </nav>
+
   <section class="card hero" id="startCard">
     <h2>scan a packaged food</h2>
     <p>Barcode first. Photos are only needed when the product cannot be found.</p>
@@ -205,6 +211,55 @@ video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
       <input id="tokenInput" class="input" placeholder="submission token" style="margin-top:8px">
       <button id="saveSetupBtn" class="btn" style="width:100%;margin-top:8px">save setup</button>
     </details>
+  </section>
+
+  <section class="card sound-lab-view hidden" id="soundLabView" aria-labelledby="soundLabTitle">
+    <div class="lab-intro">
+      <p class="eyebrow">test lab · module 01</p>
+      <h2 id="soundLabTitle">sound / buzz lab</h2>
+      <p>Test which low buzz pattern is easiest to notice while holding the phone. This is an audio experiment, not a claim of native haptics.</p>
+      <div class="lab-capability" id="labCapability">Checking browser capabilities…</div>
+    </div>
+
+    <div class="sound-controls">
+      <div class="sound-strength">
+        <label for="labStrength"><span>tone strength</span><strong id="labStrengthValue">70%</strong></label>
+        <input id="labStrength" type="range" min="8" max="100" value="70" step="1">
+      </div>
+
+      <div class="sound-grid" aria-label="Buzz patterns">
+        <button class="sound-test" type="button" data-sound-pattern="a">
+          <strong>pattern A</strong><span>85 Hz · square · triple pulse</span><span class="lab-rating" data-rating-for="a">not rated yet</span>
+        </button>
+        <button class="sound-test" type="button" data-sound-pattern="b">
+          <strong>pattern B</strong><span>105 Hz · square · triple pulse</span><span class="lab-rating" data-rating-for="b">not rated yet</span>
+        </button>
+        <button class="sound-test" type="button" data-sound-pattern="c">
+          <strong>pattern C</strong><span>125 Hz · sawtooth · triple pulse</span><span class="lab-rating" data-rating-for="c">not rated yet</span>
+        </button>
+        <button class="sound-test" type="button" data-sound-pattern="d">
+          <strong>pattern D</strong><span>145 Hz · square · triple pulse</span><span class="lab-rating" data-rating-for="d">not rated yet</span>
+        </button>
+        <button class="sound-test" type="button" data-sound-pattern="e">
+          <strong>pattern E</strong><span>170 Hz · sawtooth · triple pulse</span><span class="lab-rating" data-rating-for="e">not rated yet</span>
+        </button>
+        <button class="sound-test" type="button" data-sound-pattern="f">
+          <strong>pattern F</strong><span>105 + 210 Hz · layered · triple pulse</span><span class="lab-rating" data-rating-for="f">not rated yet</span>
+        </button>
+      </div>
+
+      <div class="lab-status" id="labStatus" aria-live="polite">Start with the phone volume around the middle. Hold the phone normally; do not test beside your ear.</div>
+
+      <div class="lab-rate" aria-label="Rate the last pattern">
+        <button class="btn" type="button" data-lab-rate="felt it">felt it</button>
+        <button class="btn" type="button" data-lab-rate="barely felt it">barely felt it</button>
+        <button class="btn" type="button" data-lab-rate="heard only">heard only</button>
+      </div>
+
+      <button class="btn lab-stop" id="labStop" type="button">stop sound</button>
+    </div>
+
+    <p class="lab-note">Ratings stay on this device so the lab can remember what worked. Future hardware/browser experiments can be added here as separate modules.</p>
   </section>
 </main>
 
@@ -304,5 +359,6 @@ $("acceptAgreement").onclick=async()=>{const testerName=$("testerName").value.tr
 
 (async function init(){if(!localStorage.getItem(ENDPOINT_KEY))localStorage.setItem(ENDPOINT_KEY,DEFAULT_ENDPOINT);if(!localStorage.getItem(TOKEN_KEY))localStorage.setItem(TOKEN_KEY,DEFAULT_TOKEN);$("endpointInput").value=localStorage.getItem(ENDPOINT_KEY)||DEFAULT_ENDPOINT;$("tokenInput").value=localStorage.getItem(TOKEN_KEY)||DEFAULT_TOKEN;if(localStorage.getItem(AGREEMENT_KEY)!=="1")show("agreement");else openInstructions();await loadRules();renderQueue();updateManualClearButton();})();
 </script>
+<script src="./sound-lab.js"></script>
 </body>
 </html>
