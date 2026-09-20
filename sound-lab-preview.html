@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1b2027">
+<title>Bill's Research App — Sound Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baumans&display=swap" rel="stylesheet">
+<style>
+:root{--display:"Baumans","Arial Rounded MT Bold",system-ui,sans-serif;--body:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--bg:#11151a;--panel:#242b34;--panel2:#303946;--purple:#7d5f86;--purple2:#c58ae9;--cream:#f3edf4;--muted:#b8b0ba;--red:#8d2f4a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at top,#303946 0%,#1b2027 45%,#11151a 100%);color:var(--cream);font-family:var(--body)}
+button,input{font:inherit}button{cursor:pointer;touch-action:manipulation}
+.app{width:min(100%,430px);min-height:100dvh;margin:auto;padding:16px 14px calc(28px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.bill-face{width:62px;height:62px;border-radius:21px;display:grid;place-items:center;background:linear-gradient(145deg,var(--purple),#513d59);font-family:var(--display);font-size:1.25rem;box-shadow:0 12px 28px rgba(0,0,0,.38)}
+h1,h2,h3,.eyebrow,.btn{font-family:var(--display);text-transform:lowercase;letter-spacing:.02em}
+.eyebrow{margin:0 0 3px;color:#b89ac0;font-size:.76rem}h1{margin:0;font-size:1.75rem;line-height:1;color:var(--purple2);text-shadow:0 2px 0 #3a2742,0 8px 18px rgba(0,0,0,.45)}
+.card{border:1px solid rgba(184,154,192,.24);border-radius:24px;padding:15px;background:linear-gradient(145deg,rgba(48,57,70,.97),rgba(27,32,39,.96));box-shadow:0 18px 44px rgba(0,0,0,.38);margin-bottom:12px}
+.card h2,.card h3{margin:0 0 8px}.card p{margin:0;color:var(--muted);line-height:1.4;font-size:.9rem}
+.btn{min-height:50px;border-radius:16px;padding:12px 14px;font-weight:900;border:1px solid rgba(184,154,192,.28);background:rgba(17,21,26,.48);color:var(--cream)}
+.btn.danger{border-color:rgba(141,47,74,.55);color:#ffe0ea}
+.sound-grid{display:grid;gap:9px;margin-top:12px}
+.sound-test{width:100%;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left}
+.test-num{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:rgba(197,138,233,.14);color:var(--purple2);font-weight:900}
+.sound-test small{display:block;color:var(--muted);font-family:var(--body);font-weight:500;text-transform:none;margin-top:2px}.play{font-size:1.1rem;color:var(--purple2)}
+.control{display:grid;gap:7px;margin-top:12px}.control label{font-family:var(--display);font-size:.84rem;color:var(--purple2)}.control input{width:100%}
+.readout{display:flex;justify-content:space-between;gap:10px;color:var(--muted);font-size:.78rem}
+.status{margin-top:10px;min-height:42px;padding:10px 12px;border-radius:14px;border:1px solid rgba(184,154,192,.18);background:rgba(17,21,26,.28);color:var(--muted);font-size:.84rem;line-height:1.35}
+.rating{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.rating button{min-height:42px;border:1px solid rgba(184,154,192,.22);border-radius:13px;background:rgba(17,21,26,.38);color:var(--cream);font-family:var(--display)}.rating button.selected{background:rgba(125,95,134,.55);border-color:rgba(197,138,233,.55)}
+.results{display:grid;gap:6px;margin-top:10px}.result-row{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(17,21,26,.28);font-size:.78rem}.result-row span:last-child{color:var(--purple2);font-weight:800}
+.capability{margin-top:9px;font-size:.78rem;color:var(--muted)}
+.back{display:inline-block;color:var(--purple2);text-decoration:none;font-family:var(--display);margin-bottom:12px}
+@media(max-width:360px){.sound-test{grid-template-columns:auto 1fr}.sound-test .play{display:none}.rating{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main class="app">
+<a class="back" href="./">← scanner</a>
+<header class="top"><div class="bill-face">big<br>bill</div><div><p class="eyebrow">research test bench</p><h1>sound lab</h1></div></header>
+<section class="card"><p class="eyebrow">hardware experiment</p><h2>phone buzz lab</h2><p>These are audio tests, not fake haptics. We are looking for a low, rough warning sound that is easy to notice and may also transmit a slight physical buzz through the phone body.</p><div class="capability" id="vibrationCapability"></div></section>
+<section class="card">
+<h3>test patterns</h3><p>Start around half volume. Hold the phone the way you would while walking the E-Zone boundary. Try each pattern at the same phone volume before comparing them.</p>
+<div class="control"><label for="labVolume">lab output level</label><input id="labVolume" type="range" min="0.15" max="1" step="0.05" value="0.65"><div class="readout"><span>gentler</span><strong id="labVolumeValue">65%</strong><span>stronger</span></div></div>
+<div class="sound-grid">
+<button class="btn sound-test" type="button" data-pattern="1"><span class="test-num">1</span><span>deep pulse<small>90 Hz sine · triple pulse</small></span><span class="play">▶</span></button>
+<button class="btn sound-test" type="button" data-pattern="2"><span class="test-num">2</span><span>low square buzz<small>110 Hz square · triple pulse</small></span><span class="play">▶</span></button>
+<button class="btn sound-test" type="button" data-pattern="3"><span class="test-num">3</span><span>rough saw buzz<small>140 Hz sawtooth · triple pulse</small></span><span class="play">▶</span></button>
+<button class="btn sound-test" type="button" data-pattern="4"><span class="test-num">4</span><span>mid-low buzz<small>180 Hz square · triple pulse</small></span><span class="play">▶</span></button>
+<button class="btn sound-test" type="button" data-pattern="5"><span class="test-num">5</span><span>dual-frequency rumble<small>120 + 180 Hz · layered triple pulse</small></span><span class="play">▶</span></button>
+<button class="btn sound-test" type="button" data-pattern="6"><span class="test-num">6</span><span>rough boundary alert<small>150 Hz saw + 75 Hz subharmonic · buzz-buzz-buzz</small></span><span class="play">▶</span></button>
+</div>
+<button id="stopSoundBtn" class="btn danger" type="button" style="width:100%;margin-top:10px">stop sound</button>
+<div id="labStatus" class="status" aria-live="polite">Tap a pattern to start the audio engine. iPhone requires a user tap before web audio can play.</div>
+</section>
+<section class="card"><h3>rate the last pattern</h3><p>Save a quick result on this phone so we can compare the patterns.</p><div class="rating"><button type="button" data-rating="felt">felt it</button><button type="button" data-rating="heard">heard only</button><button type="button" data-rating="weak">too weak</button></div><div id="labResults" class="results"></div><button id="clearResultsBtn" class="btn" type="button" style="width:100%;margin-top:10px">clear test results</button></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let audioCtx=null,activeNodes=[],lastPattern="";
+const KEY="billsResearchSoundLabResultsV1";
+function volume(){return Number($("labVolume").value||0.65)}
+function stopSound(){activeNodes.forEach(n=>{try{n.stop?.()}catch(e){}try{n.disconnect?.()}catch(e){}});activeNodes=[]}
+async function ensureAudio(){const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)throw new Error("Web Audio is not available on this browser.");if(!audioCtx)audioCtx=new Ctx();if(audioCtx.state==="suspended")await audioCtx.resume();return audioCtx}
+function tone(ctx,{freq,type,start,duration,gain,destination}){const osc=ctx.createOscillator(),amp=ctx.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,start);amp.gain.setValueAtTime(0,start);amp.gain.linearRampToValueAtTime(gain,start+.012);amp.gain.setValueAtTime(gain,Math.max(start+.012,start+duration-.025));amp.gain.linearRampToValueAtTime(0,start+duration);osc.connect(amp).connect(destination);osc.start(start);osc.stop(start+duration+.02);activeNodes.push(osc,amp)}
+async function play(id){stopSound();const ctx=await ensureAudio(),master=ctx.createGain();master.gain.value=Math.min(.85,volume());master.connect(ctx.destination);activeNodes.push(master);const now=ctx.currentTime+.025,starts=[0,.24,.48],duration=.14,defs={"1":[{freq:90,type:"sine",gain:.9}],"2":[{freq:110,type:"square",gain:.48}],"3":[{freq:140,type:"sawtooth",gain:.42}],"4":[{freq:180,type:"square",gain:.38}],"5":[{freq:120,type:"square",gain:.28},{freq:180,type:"sawtooth",gain:.25}],"6":[{freq:150,type:"sawtooth",gain:.31},{freq:75,type:"square",gain:.18}]};(defs[id]||defs["1"]).forEach(d=>starts.forEach(off=>tone(ctx,{...d,start:now+off,duration,destination:master})));lastPattern=id;$("labStatus").textContent="Playing pattern "+id+" — notice both sound and any physical buzz through the phone body.";setTimeout(()=>{if(lastPattern===id)$("labStatus").textContent="Pattern "+id+" finished. Rate what you actually experienced, then try another."},900)}
+function getResults(){try{return JSON.parse(localStorage.getItem(KEY)||"{}")}catch(e){return {}}}
+function renderResults(){const r=getResults();$("labResults").innerHTML=Object.keys(r).sort().map(id=>'<div class="result-row"><span>pattern '+id+'</span><span>'+r[id]+'</span></div>').join("")||'<div class="result-row"><span>no ratings yet</span><span>—</span></div>'}
+function rate(value){if(!lastPattern){$("labStatus").textContent="Play a pattern first, then rate it.";return}const r=getResults();r[lastPattern]=value;localStorage.setItem(KEY,JSON.stringify(r));document.querySelectorAll("[data-rating]").forEach(b=>b.classList.toggle("selected",b.dataset.rating===value));renderResults();$("labStatus").textContent="Saved: pattern "+lastPattern+" → "+value+"."}
+document.querySelectorAll(".sound-test").forEach(b=>b.addEventListener("click",()=>play(b.dataset.pattern).catch(e=>$("labStatus").textContent=e.message)));
+$("stopSoundBtn").addEventListener("click",()=>{stopSound();$("labStatus").textContent="Sound stopped."});
+$("labVolume").addEventListener("input",e=>$("labVolumeValue").textContent=Math.round(Number(e.target.value)*100)+"%");
+document.querySelectorAll("[data-rating]").forEach(b=>b.addEventListener("click",()=>rate(b.dataset.rating)));
+$("clearResultsBtn").addEventListener("click",()=>{localStorage.removeItem(KEY);renderResults();$("labStatus").textContent="Sound Lab ratings cleared."});
+$("vibrationCapability").textContent="Native vibration API: "+(typeof navigator.vibrate==="function"?"available on this browser":"not available here")+" · These sound tests do not depend on it.";
+renderResults();
+</script>
+</body>
+</html>
